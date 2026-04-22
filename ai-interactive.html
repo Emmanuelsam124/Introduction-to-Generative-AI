@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Explorer — Classroom Interactive</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070f;
+    --surface: #0d0d1a;
+    --card: #13131f;
+    --highlight: #1c1c2e;
+    --accent: #ff3366;
+    --blue: #2563eb;
+    --cyan: #06b6d4;
+    --green: #10b981;
+    --gold: #f59e0b;
+    --purple: #8b5cf6;
+    --text: #f0f0fa;
+    --muted: #6b7280;
+    --border: #1f1f35;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated dots bg */
+  .bg-anim {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(37,99,235,0.15), transparent),
+                radial-gradient(ellipse 60% 60% at 80% 80%, rgba(139,92,246,0.08), transparent);
+  }
+
+  .app { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .logo-dot { width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 8px var(--cyan); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .header-sub { font-size: 0.8rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* Tab nav */
+  .tab-nav {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    padding: 0.6em 1.2em;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .tab-btn:hover { color: var(--text); border-color: #3f3f5f; }
+  .tab-btn.active { color: var(--text); border-color: transparent; }
+  .tab-btn[data-tab="what"].active { background: linear-gradient(135deg, #1e3a8a, #1e40af); }
+  .tab-btn[data-tab="prompt"].active { background: linear-gradient(135deg, #78350f, #92400e); }
+  .tab-btn[data-tab="study"].active { background: linear-gradient(135deg, #064e3b, #065f46); }
+  .tab-btn[data-tab="tools"].active { background: linear-gradient(135deg, #4c1d95, #5b21b6); }
+  .tab-btn[data-tab="video"].active { background: linear-gradient(135deg, #7f1d1d, #991b1b); }
+  .tab-btn[data-tab="ethics"].active { background: linear-gradient(135deg, #1f2937, #374151); }
+
+  /* Panel */
+  .panel { display: none; animation: slideIn 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* --- WHAT IS AI --- */
+  .hero-def {
+    background: linear-gradient(135deg, #0f1f5c, #1a1a3e);
+    border: 1px solid rgba(37,99,235,0.3);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  .hero-def h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--cyan);
+    margin-bottom: 0.75rem;
+  }
+  .hero-def p { font-size: 0.95rem; color: #a0b0d0; line-height: 1.7; max-width: 600px; margin: 0 auto; }
+
+  .ai-types { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media(max-width:600px){ .ai-types{ grid-template-columns:1fr; } }
+  .ai-type {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .ai-type:hover { transform: translateY(-3px); border-color: #3f3f5f; }
+  .ai-type .t-icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+  .ai-type h3 { font-family: 'Syne', sans-serif; font-size: 0.9rem; margin-bottom: 0.3rem; }
+  .ai-type p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .ai-type-detail {
+    background: var(--highlight);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 0.75rem;
+    font-size: 0.82rem;
+    color: #a0a0c0;
+    line-height: 1.6;
+    display: none;
+    text-align: left;
+  }
+  .ai-type.open .ai-type-detail { display: block; }
+
+  .analogy-strip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    font-size: 0.9rem;
+    color: #a0b0c8;
+    line-height: 1.7;
+  }
+  .analogy-strip strong { color: var(--cyan); }
+
+  /* --- PROMPTING --- */
+  .prompt-builder {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .pb-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--gold); }
+  .pb-parts { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+  @media(max-width:500px){ .pb-parts{ grid-template-columns:1fr; } }
+  .pb-part label { display: block; font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.35rem; }
+  .pb-part input, .pb-part select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .pb-part input:focus, .pb-part select:focus { border-color: var(--gold); }
+  .pb-part select option { background: #1a1a2e; }
+  .build-btn {
+    background: linear-gradient(135deg, var(--gold), #d97706);
+    color: #0a0a12;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .build-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .prompt-output {
+    background: var(--surface);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+    font-size: 0.88rem;
+    color: #d0d0b0;
+    line-height: 1.7;
+    font-family: 'DM Mono', monospace;
+    min-height: 60px;
+    display: none;
+  }
+  .prompt-output.visible { display: block; }
+
+  .prompt-examples { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  @media(max-width:500px){ .prompt-examples{ grid-template-columns:1fr; } }
+  .pe-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .pe-label { font-size: 0.65rem; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem; }
+  .pe-good-label { color: var(--green); }
+  .pe-text { font-size: 0.8rem; color: #a0a0c0; line-height: 1.55; font-style: italic; }
+
+  /* --- STUDY --- */
+  .study-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem; }
+  @media(max-width:540px){ .study-grid{ grid-template-columns:1fr; } }
+  .study-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .study-card:hover { transform: translateY(-2px); border-color: rgba(16,185,129,0.4); }
+  .study-card.open { border-color: rgba(16,185,129,0.4); }
+  .sc-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0; }
+  .sc-icon { font-size: 1.5rem; }
+  .sc-title { font-family: 'Syne', sans-serif; font-size: 0.9rem; }
+  .sc-expand { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .study-card.open .sc-expand { display: block; }
+  .sc-prompt-list { list-style: none; }
+  .sc-prompt-list li {
+    font-size: 0.8rem;
+    color: #a0c0a8;
+    padding: 0.35rem 0;
+    padding-left: 1.1rem;
+    position: relative;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.5;
+    border-bottom: 1px dotted #1f2f25;
+  }
+  .sc-prompt-list li::before { content: '>'; position: absolute; left: 0; color: var(--green); }
+  .sc-prompt-list li:last-child { border-bottom: none; }
+
+  /* --- TOOLS --- */
+  .tools-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tt-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.45em 1em;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tt-btn.active { background: var(--purple); color: white; border-color: var(--purple); }
+  .tool-list { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.75rem; }
+  @media(max-width:480px){ .tool-list{ grid-template-columns:1fr; } }
+  .tool-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+  .tc-name { font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; }
+  .tc-tag {
+    font-size: 0.6rem;
+    font-family: 'DM Mono', monospace;
+    padding: 0.15em 0.55em;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .tc-tag.free { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .tc-tag.freemium { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.2); }
+  .tc-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .tc-url { font-size: 0.72rem; font-family: 'DM Mono', monospace; color: var(--purple); }
+
+  /* --- VIDEO --- */
+  .video-intro {
+    background: linear-gradient(135deg, #3b0808, #1f0f0f);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  .video-intro h2 { font-family: 'Syne', sans-serif; font-size: 1.5rem; color: #ff6b6b; margin-bottom: 0.5rem; }
+  .video-intro p { font-size: 0.88rem; color: #c0a0a0; line-height: 1.65; }
+  .vid-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media(max-width:600px){ .vid-cards{ grid-template-columns:1fr; } }
+  .vc {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 2px solid #ff6b6b;
+    border-radius: 8px;
+    padding: 1.1rem;
+  }
+  .vc h4 { font-family: 'Syne', sans-serif; font-size: 0.88rem; color: #ff8080; margin-bottom: 0.3rem; }
+  .vc .vc-url { font-size: 0.68rem; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 0.5rem; }
+  .vc p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .vc .vc-free { display: inline-block; margin-top: 0.5rem; font-size: 0.65rem; font-family: 'DM Mono', monospace; color: var(--green); border: 1px solid rgba(16,185,129,0.3); padding: 0.15em 0.5em; border-radius: 3px; }
+
+  .vid-tips {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+  }
+  .vid-tips h3 { font-family: 'Syne', sans-serif; font-size: 0.9rem; margin-bottom: 0.85rem; color: var(--gold); }
+  .tip-row { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.5rem 0; border-bottom: 1px dotted var(--border); }
+  .tip-row:last-child { border-bottom: none; }
+  .tip-bullet { color: var(--gold); font-family: 'DM Mono', monospace; font-size: 0.75rem; padding-top: 0.1rem; flex-shrink: 0; }
+  .tip-text { font-size: 0.82rem; color: #c0b890; line-height: 1.55; }
+
+  /* --- ETHICS --- */
+  .eth-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media(max-width:540px){ .eth-cards{ grid-template-columns:1fr; } }
+  .eth-c {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .eth-c .ei { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .eth-c h3 { font-family: 'Syne', sans-serif; font-size: 0.88rem; margin-bottom: 0.4rem; }
+  .eth-c p { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
+  .eth-quiz {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+  .eq-title { font-family: 'Syne', sans-serif; font-size: 1rem; margin-bottom: 1rem; color: var(--text); }
+  .eq-q { font-size: 0.9rem; color: var(--text); margin-bottom: 0.75rem; line-height: 1.5; }
+  .eq-options { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+  .eq-opt {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .eq-opt:hover { border-color: #3f3f5f; color: var(--text); }
+  .eq-opt.correct { border-color: var(--green); background: rgba(16,185,129,0.1); color: var(--green); }
+  .eq-opt.wrong { border-color: var(--accent); background: rgba(255,51,102,0.1); color: var(--accent); }
+  .eq-feedback { font-size: 0.85rem; padding: 0.75rem 1rem; border-radius: 6px; display: none; line-height: 1.6; }
+  .eq-feedback.show { display: block; }
+  .eq-feedback.good { background: rgba(16,185,129,0.1); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+  .eq-feedback.bad { background: rgba(255,51,102,0.1); color: #fca5a5; border: 1px solid rgba(255,51,102,0.3); }
+  .eq-next { margin-top: 0.75rem; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.6em 1.2em; border-radius: 5px; cursor: pointer; display: none; }
+  .eq-next.show { display: inline-block; }
+</style>
+</head>
+<body>
+<div class="bg-anim"></div>
+<div class="app">
+
+  <div class="header">
+    <div class="logo"><div class="logo-dot"></div> AI Explorer</div>
+    <div class="header-sub">CLASSROOM · INTERACTIVE GUIDE · UNIVERSITY EDITION</div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="what">01 · What is AI</button>
+    <button class="tab-btn" data-tab="prompt">02 · Prompting</button>
+    <button class="tab-btn" data-tab="study">03 · Study Use</button>
+    <button class="tab-btn" data-tab="tools">04 · Tools</button>
+    <button class="tab-btn" data-tab="video">05 · Video AI</button>
+    <button class="tab-btn" data-tab="ethics">06 · Ethics</button>
+  </div>
+
+  <!-- WHAT IS AI -->
+  <div class="panel active" id="panel-what">
+    <div class="hero-def">
+      <h2>What is Artificial Intelligence?</h2>
+      <p>AI is software that learns patterns from millions of examples and uses those patterns to make decisions, generate content, or answer questions — without being given specific rules for every situation.</p>
+    </div>
+    <div class="ai-types">
+      <div class="ai-type" onclick="toggleType(this)">
+        <div class="t-icon">💬</div>
+        <h3>Language AI</h3>
+        <p>Reads, writes, explains, answers</p>
+        <div class="ai-type-detail">Examples: Claude, ChatGPT, Gemini, Perplexity.<br><br>These AI models are trained on huge amounts of text. They predict the most useful next word, one at a time, until they've answered your question.<br><br><strong>Use for:</strong> essays, summaries, tutoring, coding, analysis.</div>
+      </div>
+      <div class="ai-type" onclick="toggleType(this)">
+        <div class="t-icon">🎨</div>
+        <h3>Image AI</h3>
+        <p>Generates & edits images from text</p>
+        <div class="ai-type-detail">Examples: Adobe Firefly, DALL-E, Midjourney, Ideogram.<br><br>These models learn what objects look like from billions of images. You describe what you want, and it generates something that matches your description.<br><br><strong>Use for:</strong> presentations, social media, creative projects, design.</div>
+      </div>
+      <div class="ai-type" onclick="toggleType(this)">
+        <div class="t-icon">🎬</div>
+        <h3>Video AI</h3>
+        <p>Creates short video clips from prompts</p>
+        <div class="ai-type-detail">Examples: Runway ML, Kling AI, Sora, Pika Labs.<br><br>Newer and still imperfect — hands, faces, and physics sometimes look wrong. But improving fast.<br><br><strong>Use for:</strong> explainer videos, creative projects, content creation, presentations.</div>
+      </div>
+    </div>
+    <div class="analogy-strip">
+      <strong>The best analogy:</strong> AI is like an incredibly fast pattern-matcher. It hasn't "understood" anything — it's found the statistical patterns in vast amounts of human knowledge and learned to produce outputs that follow those patterns. This is why it can be brilliant <em>and</em> confidently wrong at the same time.
+    </div>
+  </div>
+
+  <!-- PROMPTING -->
+  <div class="panel" id="panel-prompt">
+    <div class="prompt-builder">
+      <div class="pb-title">⚡ Prompt Builder — Try It</div>
+      <div class="pb-parts">
+        <div class="pb-part">
+          <label>Role (who should AI be?)</label>
+          <input id="pb-role" type="text" placeholder="e.g. a university tutor" />
+        </div>
+        <div class="pb-part">
+          <label>Task (what to do?)</label>
+          <input id="pb-task" type="text" placeholder="e.g. explain supply and demand" />
+        </div>
+        <div class="pb-part">
+          <label>Format</label>
+          <select id="pb-format">
+            <option value="5 bullet points">5 bullet points</option>
+            <option value="a short paragraph">a short paragraph</option>
+            <option value="a numbered step-by-step guide">numbered steps</option>
+            <option value="a simple table">a table</option>
+            <option value="a story analogy">a story analogy</option>
+          </select>
+        </div>
+        <div class="pb-part">
+          <label>Level</label>
+          <select id="pb-level">
+            <option value="a 1st-year university student">1st-year student</option>
+            <option value="someone with no background">complete beginner</option>
+            <option value="an advanced student">advanced student</option>
+            <option value="a 10-year-old child">a child (age 10)</option>
+          </select>
+        </div>
+      </div>
+      <button class="build-btn" onclick="buildPrompt()">Generate Prompt →</button>
+      <div class="prompt-output" id="prompt-output"></div>
+    </div>
+
+    <div style="margin-bottom:1rem;"><div class="pb-title" style="font-size:0.9rem; color:var(--muted);">❌ vs ✅ Examples</div></div>
+    <div class="prompt-examples">
+      <div class="pe-card">
+        <div class="pe-label">❌ Weak Prompt</div>
+        <p class="pe-text">"Tell me about cybersecurity"</p>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">Too vague. AI will give a generic 1000-word essay that probably doesn't match what you needed.</p>
+      </div>
+      <div class="pe-card">
+        <div class="pe-label pe-good-label">✅ Strong Prompt</div>
+        <p class="pe-text">"You are a cybersecurity tutor. List the 5 most common ways hackers attack systems, in simple terms, suitable for a 1st-year IT student."</p>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">Specific, scoped, with role + format + audience = targeted, useful answer.</p>
+      </div>
+      <div class="pe-card">
+        <div class="pe-label">❌ Weak Prompt</div>
+        <p class="pe-text">"Help me with my essay"</p>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">AI has no idea what topic, what level, what's already written, or what kind of help is needed.</p>
+      </div>
+      <div class="pe-card">
+        <div class="pe-label pe-good-label">✅ Strong Prompt</div>
+        <p class="pe-text">"Here is my introduction paragraph. Give me 3 specific suggestions to make the argument stronger. Do not rewrite it — just give bullet point feedback."</p>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem; line-height:1.5;">Clear constraints, specific output format, preserves student's own work.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDY -->
+  <div class="panel" id="panel-study">
+    <div class="study-grid">
+      <div class="study-card" onclick="this.classList.toggle('open')">
+        <div class="sc-header"><div class="sc-icon">📚</div><div class="sc-title">Summarise Content</div></div>
+        <div class="sc-expand">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">Paste a chapter or article. Use these prompts:</p>
+          <ul class="sc-prompt-list">
+            <li>"Summarise this in 5 key points"</li>
+            <li>"What are the 3 most important ideas here?"</li>
+            <li>"Give me a one-paragraph summary for revision"</li>
+            <li>"What questions might come up in an exam on this?"</li>
+          </ul>
+        </div>
+      </div>
+      <div class="study-card" onclick="this.classList.toggle('open')">
+        <div class="sc-header"><div class="sc-icon">🧪</div><div class="sc-title">Self-Testing & Quizzes</div></div>
+        <div class="sc-expand">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">Use AI as your personal quiz master:</p>
+          <ul class="sc-prompt-list">
+            <li>"Create 10 multiple choice questions on [topic]"</li>
+            <li>"Quiz me on [chapter]. Ask one question at a time."</li>
+            <li>"I answered X. Was I right? Explain."</li>
+            <li>"What are common mistakes students make on this topic?"</li>
+          </ul>
+        </div>
+      </div>
+      <div class="study-card" onclick="this.classList.toggle('open')">
+        <div class="sc-header"><div class="sc-icon">✍️</div><div class="sc-title">Essay & Writing Help</div></div>
+        <div class="sc-expand">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">Use AI as a writing coach, not a ghostwriter:</p>
+          <ul class="sc-prompt-list">
+            <li>"Give feedback on this paragraph — don't rewrite it"</li>
+            <li>"Does my argument flow logically? What's missing?"</li>
+            <li>"Suggest 3 ways to make my intro more compelling"</li>
+            <li>"What counterarguments should I address in my essay?"</li>
+          </ul>
+        </div>
+      </div>
+      <div class="study-card" onclick="this.classList.toggle('open')">
+        <div class="sc-header"><div class="sc-icon">🔍</div><div class="sc-title">Research & Explanation</div></div>
+        <div class="sc-expand">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">Understand hard topics faster:</p>
+          <ul class="sc-prompt-list">
+            <li>"Explain [concept] like I've never studied it"</li>
+            <li>"Give me a real-world example of [theory]"</li>
+            <li>"Compare and contrast X and Y in a simple table"</li>
+            <li>"What are the pros and cons of [approach]?"</li>
+          </ul>
+        </div>
+      </div>
+      <div class="study-card" onclick="this.classList.toggle('open')">
+        <div class="sc-header"><div class="sc-icon">💻</div><div class="sc-title">Coding & Tech Help</div></div>
+        <div class="sc-expand">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">For CS/IT students:</p>
+          <ul class="sc-prompt-list">
+            <li>"Explain what this code does line by line"</li>
+            <li>"Why is my code giving this error? [paste code]"</li>
+            <li>"Write a simple Python function that does X"</li>
+            <li>"What's the difference between X and Y in [language]?"</li>
+          </ul>
+        </div>
+      </div>
+      <div class="study-card" onclick="this.classList.toggle('open')">
+        <div class="sc-header"><div class="sc-icon">⚠️</div><div class="sc-title">What AI Can't Do</div></div>
+        <div class="sc-expand">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">Always watch out for these limitations:</p>
+          <ul class="sc-prompt-list">
+            <li>AI can invent fake citations — always verify</li>
+            <li>AI can be confidently wrong about facts & dates</li>
+            <li>AI doesn't know recent events (knowledge cutoff)</li>
+            <li>Submitting AI work as your own = academic dishonesty</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLS -->
+  <div class="panel" id="panel-tools">
+    <div class="tools-tabs">
+      <button class="tt-btn active" onclick="showToolCat('text', this)">💬 Text AI</button>
+      <button class="tt-btn" onclick="showToolCat('image', this)">🎨 Image AI</button>
+      <button class="tt-btn" onclick="showToolCat('video', this)">🎬 Video AI</button>
+      <button class="tt-btn" onclick="showToolCat('study', this)">📖 Study Tools</button>
+    </div>
+    <div id="tool-list-container">
+      <div class="tool-list" id="tools-text">
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Claude</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Best for analysis, writing, tutoring, and nuanced answers. Great for long documents.</div><div class="tc-url">claude.ai</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">ChatGPT</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Most widely used. Great general purpose AI. GPT-4o free tier available.</div><div class="tc-url">chatgpt.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Perplexity AI</span><span class="tc-tag free">Free</span></div><div class="tc-desc">AI with live web search + citations. Best for research where accuracy matters.</div><div class="tc-url">perplexity.ai</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">NotebookLM</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Upload your own notes or PDFs, then chat with them. Perfect for exam prep.</div><div class="tc-url">notebooklm.google.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Google Gemini</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Google's AI. Integrated with Google Docs, Gmail, and Drive for students.</div><div class="tc-url">gemini.google.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Microsoft Copilot</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Powered by GPT-4. Integrated with Word, PowerPoint, and Edge browser.</div><div class="tc-url">copilot.microsoft.com</div></div>
+      </div>
+      <div class="tool-list" id="tools-image" style="display:none;">
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Adobe Firefly</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Trained on licensed images. Safe for commercial and academic use. Professional quality.</div><div class="tc-url">firefly.adobe.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">MS Copilot Designer</span><span class="tc-tag free">Free</span></div><div class="tc-desc">DALL-E 3 powered. Easy for beginners. Great for presentations and posters.</div><div class="tc-url">bing.com/images/create</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Canva AI</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Generate images inside Canva's design tool. Combine with templates easily.</div><div class="tc-url">canva.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Ideogram.ai</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Excellent at text inside images — great for posters and infographics.</div><div class="tc-url">ideogram.ai</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Leonardo.ai</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Advanced controls. Good free tier. Popular for creative and artistic outputs.</div><div class="tc-url">leonardo.ai</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Playground AI</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Multiple models, generous free tier, great for experimenting with different styles.</div><div class="tc-url">playground.com</div></div>
+      </div>
+      <div class="tool-list" id="tools-video" style="display:none;">
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Kling AI</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">High quality video generation. Generous free credits daily. Growing fast.</div><div class="tc-url">klingai.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Runway ML</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Industry standard. Used by real filmmakers. Gen-3 Alpha is very powerful.</div><div class="tc-url">runwayml.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">CapCut AI</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Mobile-friendly video editor with AI features. Auto-captions, background removal.</div><div class="tc-url">capcut.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Pika Labs</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Text-to-video and image-to-video. Free tier available. Fun and creative.</div><div class="tc-url">pika.art</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Luma Dream Machine</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Photorealistic video generation. Good free plan for students.</div><div class="tc-url">lumalabs.ai</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Hailuo AI</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Free video generation tool by MiniMax. Good quality, easy to use.</div><div class="tc-url">hailuoai.video</div></div>
+      </div>
+      <div class="tool-list" id="tools-study" style="display:none;">
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">NotebookLM</span><span class="tc-tag free">Free</span></div><div class="tc-desc">Upload your textbooks/notes and chat with them. Also generates audio summaries.</div><div class="tc-url">notebooklm.google.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Grammarly</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">AI writing assistant. Checks grammar, tone, clarity. Free browser extension.</div><div class="tc-url">grammarly.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Quizlet AI</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Generate flashcards from your notes automatically. Study smarter, not harder.</div><div class="tc-url">quizlet.com</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Otter.ai</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Transcribes lectures and meetings in real time. Free tier for 300 mins/month.</div><div class="tc-url">otter.ai</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Gamma.app</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">AI builds entire presentation decks from a prompt. Saves hours on slide design.</div><div class="tc-url">gamma.app</div></div>
+        <div class="tool-card"><div class="tc-top"><span class="tc-name">Wolfram Alpha</span><span class="tc-tag freemium">Freemium</span></div><div class="tc-desc">Computational AI. Better than ChatGPT for maths, science, and data.</div><div class="tc-url">wolframalpha.com</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEO -->
+  <div class="panel" id="panel-video">
+    <div class="video-intro">
+      <h2>🎬 AI Video Generation</h2>
+      <p>AI can now generate realistic short video clips from a text description. You don't need a camera, actors, or editing skills — just words. The technology is still new, so results vary, but it's improving rapidly.</p>
+    </div>
+    <div class="vid-cards">
+      <div class="vc"><h4>Runway ML</h4><div class="vc-url">runwayml.com</div><p>The professional choice. High-quality clips, used by real filmmakers. Best output quality.</p><span class="vc-free">Free tier: 125 credits</span></div>
+      <div class="vc"><h4>Kling AI</h4><div class="vc-url">klingai.com</div><p>Rising star. Very high quality. Generous free daily credits. Great for students starting out.</p><span class="vc-free">Free tier: daily credits</span></div>
+      <div class="vc"><h4>CapCut AI</h4><div class="vc-url">capcut.com</div><p>Mobile app with AI features. Auto captions, background removal, AI effects on your footage.</p><span class="vc-free">Mostly free</span></div>
+    </div>
+    <div class="vid-tips">
+      <h3>💡 Tips for Better AI Video Prompts</h3>
+      <div class="tip-row"><div class="tip-bullet">01</div><div class="tip-text"><strong>Describe the camera:</strong> "close-up shot", "wide angle", "slow motion", "cinematic tracking shot"</div></div>
+      <div class="tip-row"><div class="tip-bullet">02</div><div class="tip-text"><strong>Set the scene:</strong> lighting, time of day, location. "Golden hour lighting in a Lagos market"</div></div>
+      <div class="tip-row"><div class="tip-bullet">03</div><div class="tip-text"><strong>Keep it short:</strong> AI video works best for 3–8 second clips with one clear action</div></div>
+      <div class="tip-row"><div class="tip-bullet">04</div><div class="tip-text"><strong>Avoid complex physics:</strong> hands, running crowds, and water are hard. Faces in close-up are often imperfect.</div></div>
+      <div class="tip-row"><div class="tip-bullet">05</div><div class="tip-text"><strong>Chain clips:</strong> Create multiple short clips and stitch them in CapCut or any video editor for a longer piece.</div></div>
+    </div>
+  </div>
+
+  <!-- ETHICS -->
+  <div class="panel" id="panel-ethics">
+    <div class="eth-cards">
+      <div class="eth-c"><div class="ei">🎭</div><h3>Hallucinations</h3><p>AI can state false information confidently. It doesn't "know" anything — it predicts likely words. Always verify facts from real sources.</p></div>
+      <div class="eth-c"><div class="ei">📋</div><h3>Academic Integrity</h3><p>Submitting AI-written work as your own is dishonest. Use AI as a learning aid — to understand, not to replace your thinking.</p></div>
+      <div class="eth-c"><div class="ei">🔒</div><h3>Privacy</h3><p>Your prompts may be stored or used for training. Never share passwords, personal ID, or sensitive private information with AI tools.</p></div>
+      <div class="eth-c"><div class="ei">⚖️</div><h3>Bias</h3><p>AI reflects biases in the data it was trained on. It can reproduce cultural, racial, and gender stereotypes. Think critically about its outputs.</p></div>
+    </div>
+    <div class="eth-quiz">
+      <div class="eq-title">🧠 Quick Ethics Check</div>
+      <div id="quiz-area"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// AI type expand
+function toggleType(el) { el.classList.toggle('open'); }
+
+// Prompt builder
+function buildPrompt() {
+  const role = document.getElementById('pb-role').value || 'a helpful tutor';
+  const task = document.getElementById('pb-task').value || 'explain a concept';
+  const format = document.getElementById('pb-format').value;
+  const level = document.getElementById('pb-level').value;
+  const prompt = `You are ${role}. Your task is to ${task}. Present your response as ${format}. Write it for ${level}. Be clear, accurate, and engaging.`;
+  const out = document.getElementById('prompt-output');
+  out.textContent = prompt;
+  out.classList.add('visible');
+}
+
+// Tools category
+function showToolCat(cat, btn) {
+  document.querySelectorAll('.tt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['text','image','video','study'].forEach(c => {
+    const el = document.getElementById('tools-' + c);
+    el.style.display = c === cat ? 'grid' : 'none';
+  });
+}
+
+// Ethics quiz
+const questions = [
+  { q: "Your friend pastes an essay entirely written by ChatGPT and submits it as their own. Is this okay?", opts: ["Yes, everyone uses AI now", "No, it's academic dishonesty", "Only if they edited it a little", "Depends on the university policy"], correct: 1, fb: "Even with minor edits, submitting AI work as your own without disclosure is generally considered academic dishonesty. The right approach is to use AI as a tool to help you learn and improve your own work." },
+  { q: "You ask AI for the population of Nigeria in 2024. It gives you a confident, specific number. What should you do?", opts: ["Trust it — AI is usually accurate", "Use the number but add a footnote", "Verify it from an official source like NBS or World Bank", "Ignore AI for factual questions entirely"], correct: 2, fb: "AI can hallucinate — it can state wrong facts confidently. For specific statistics, always verify from authoritative sources like official government data or established research institutions." },
+  { q: "You share your full name, student ID, and bank account details in a prompt to ask AI for financial advice. What's the risk?", opts: ["No risk — AI conversations are private", "Your data could be stored and potentially exposed", "The AI will use your data to commit fraud", "Nothing, AI can't understand personal data"], correct: 1, fb: "AI platforms may log or store your conversations, sometimes for safety review or model improvement. Avoid sharing sensitive personal information — treat AI prompts like a public message board." },
+];
+
+let qIdx = 0;
+function renderQ() {
+  if (qIdx >= questions.length) {
+    document.getElementById('quiz-area').innerHTML = '<p style="color:var(--green);font-family:Syne,sans-serif;font-size:1rem;">✅ Quiz complete! You\'re thinking like a responsible AI user.</p>';
+    return;
+  }
+  const q = questions[qIdx];
+  document.getElementById('quiz-area').innerHTML = `
+    <div class="eq-q">${qIdx+1}/${questions.length}. ${q.q}</div>
+    <div class="eq-options">${q.opts.map((o,i)=>`<button class="eq-opt" onclick="answerQ(${i})">${o}</button>`).join('')}</div>
+    <div class="eq-feedback" id="eq-fb"></div>
+    <button class="eq-next" id="eq-next" onclick="nextQ()">Next Question →</button>
+  `;
+}
+function answerQ(i) {
+  const q = questions[qIdx];
+  document.querySelectorAll('.eq-opt').forEach((b,idx) => {
+    b.disabled = true;
+    if (idx === q.correct) b.classList.add('correct');
+    else if (idx === i && i !== q.correct) b.classList.add('wrong');
+  });
+  const fb = document.getElementById('eq-fb');
+  fb.textContent = q.fb;
+  fb.className = 'eq-feedback show ' + (i === q.correct ? 'good' : 'bad');
+  document.getElementById('eq-next').classList.add('show');
+}
+function nextQ() { qIdx++; renderQ(); }
+renderQ();
+</script>
+</body>
+</html>
